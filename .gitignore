@@ -1,0 +1,41 @@
+# Secrets
+.env
+.env.dev
+
+# Build output
+/bin/
+/opskest
+/opskest.exe
+/web/dist/
+/web/node_modules/
+/internal/webui/dist/*
+!/internal/webui/dist/.gitkeep
+
+# Demo data, load and fixture tooling: local only
+/tests/
+
+# Local data
+/data/
+/backups/
+/.dev/
+*.db
+*.db-wal
+*.db-shm
+
+# Agent scratch
+.superpowers/
+.gstack/
+.DS_Store
+
+# Monitor exports contain internal endpoints — never commit them
+monitors-export*.json
+opskest-monitors*.json
+opskest-monitors*.csv
+
+# Release signing private key: never commit it
+release.key
+*.key
+
+# Release build output and the public key file (kept as a repository variable)
+/dist/
+release.pub

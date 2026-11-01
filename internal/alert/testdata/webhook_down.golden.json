@@ -1,0 +1,23 @@
+{
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "Content-Type": "application/json",
+    "X-Opskest-Signature": "sha256=85e1b2ea6c2bf2019ac98fe9f0f1dec16627a3f95d10fae938be16dc03aabca7"
+  },
+  "body": {
+    "event": "down",
+    "latency_ms": 840,
+    "monitor": {
+      "group": "Payments",
+      "id": 42,
+      "name": "API Gateway",
+      "runbook": "https://runbook.example.com/api-gateway",
+      "target": "https://api.example.com"
+    },
+    "reason": "HTTP 503",
+    "since": 1790244000000,
+    "status": "down",
+    "url": "https://uptime.example.com/monitors/42"
+  }
+}

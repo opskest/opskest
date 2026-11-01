@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Builds web/ into internal/webui/dist, which the Go binary embeds.
+# vite's emptyOutDir wipes dist/ first (including .gitkeep), so recreate it
+# after the build — .gitkeep is the only thing tracked in that directory.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+scripts/web npm ci
+scripts/web npm run build
+touch internal/webui/dist/.gitkeep

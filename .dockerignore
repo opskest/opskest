@@ -1,0 +1,12 @@
+.git
+web/node_modules
+internal/webui/dist/*
+data
+backups
+.env
+.env.*
+.superpowers
+.gstack
+.dev
+tests
+brand

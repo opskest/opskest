@@ -1,0 +1,41 @@
+{
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "attachments": [
+      {
+        "content": {
+          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+          "actions": [
+            {
+              "title": "Open in opskest",
+              "type": "Action.OpenUrl",
+              "url": "https://uptime.example.com/monitors/42"
+            }
+          ],
+          "body": [
+            {
+              "size": "Medium",
+              "text": "🔴 Down — API Gateway",
+              "type": "TextBlock",
+              "weight": "Bolder",
+              "wrap": true
+            },
+            {
+              "text": "URL / Host: https://api.example.com\nGroup: Payments\nDetails: HTTP 503 · 840 ms\nTime: 2026-09-24 10:00:00 UTC\nMonitor ID: 42\nRunbook: https://runbook.example.com/api-gateway",
+              "type": "TextBlock",
+              "wrap": true
+            }
+          ],
+          "type": "AdaptiveCard",
+          "version": "1.4"
+        },
+        "contentType": "application/vnd.microsoft.card.adaptive"
+      }
+    ],
+    "type": "message"
+  }
+}

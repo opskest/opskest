@@ -1,0 +1,22 @@
+{
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "client": "opskest",
+    "client_url": "https://uptime.example.com/monitors/42",
+    "dedup_key": "opskest-42",
+    "event_action": "trigger",
+    "payload": {
+      "custom_details": {
+        "runbook": "https://runbook.example.com/api-gateway"
+      },
+      "severity": "critical",
+      "source": "https://api.example.com",
+      "summary": "🔴 Down — API Gateway: HTTP 503 · 840 ms · Runbook: https://runbook.example.com/api-gateway"
+    },
+    "routing_key": "rk-1"
+  }
+}

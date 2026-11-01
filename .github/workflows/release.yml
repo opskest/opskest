@@ -1,0 +1,64 @@
+name: Release
+
+# Push a tag such as v1.2.0. This builds every platform, signs the update
+# manifest with the key stored as a repository secret, publishes a GitHub
+# release and records build provenance.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test before releasing
+        run: |
+          cd web && npm ci && npm run build && cd ..
+          go vet ./...
+          go test ./...
+
+      - name: Build, describe and sign
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          RELEASE_PUBLIC_KEY: ${{ vars.RELEASE_PUBLIC_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_SIGNING_KEY" ] || [ -z "$RELEASE_PUBLIC_KEY" ]; then
+            echo "Set the RELEASE_SIGNING_KEY secret and the RELEASE_PUBLIC_KEY variable first (see .github/CONTRIBUTING.md)." >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > release.key
+          printf '%s\n' "$RELEASE_PUBLIC_KEY" > release.pub
+          export OPSKEST_UPDATE_PUBLIC_KEY="$(tr -d '\r\n' < release.pub)"
+          export OPSKEST_UPDATE_FEED_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/manifest.json"
+          scripts/release "$TAG" "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          rm -f release.key
+
+      - name: Record build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --title "Opskest $TAG" --generate-notes
