@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	github.com/coder/websocket v1.8.15
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/miekg/dns v1.1.73
 	github.com/prometheus-community/pro-bing v0.9.1
 	github.com/tidwall/gjson v1.19.0
