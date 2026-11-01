@@ -1,0 +1,11 @@
+{
+  "method": "POST",
+  "path": "/v2/alerts/opskest-42/close?identifierType=alias",
+  "headers": {
+    "Authorization": "GenieKey key-1",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "source": "opskest"
+  }
+}

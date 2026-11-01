@@ -1,0 +1,49 @@
+# opskest — run from the repo root:
+#   mkdir -p data backups && sudo chown -R 65532:65532 data backups   # once; container runs as uid 65532
+#   docker compose up -d --build        # .env is optional; copy .env.example to change settings
+#
+# Binds ONLY ${OPSKEST_BIND} (default 127.0.0.1:8085). Put TLS in front for
+# secure local-account sign-in: nginx + certbot (deploy/nginx.host.conf), or an
+# AWS ALB with ACM (then set OPSKEST_BIND=0.0.0.0:8085 and restrict the port in
+# the security group).
+name: opskest
+services:
+  opskest:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-latest}
+    image: opskest:${VERSION:-latest}
+    container_name: opskest-app
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Sign-in is refused unless the browser's address matches APP_URL, and
+      # this stack is published on 8085, not the container's own 8080. Set
+      # APP_URL in .env to your real address; this only supplies the local default.
+      APP_URL: ${APP_URL:-http://localhost:8085}
+    ports:
+      - "${OPSKEST_BIND:-127.0.0.1:8085}:8080"
+    volumes:
+      - ${OPSKEST_DATA_DIR:-./data}:/data         # SQLite database
+      - ${BACKUP_HOST_DIR:-./backups}:/backups   # nightly backups — survive `down -v`
+    sysctls:
+      net.ipv4.ping_group_range: "0 2147483647"  # unprivileged ICMP for ping monitors
+    healthcheck:
+      test: ["CMD", "/opskest", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

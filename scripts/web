@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Run npm/node for web/ in Docker: a reproducible build without installing Node locally.
+# Mounts the whole repo, not just web/: vite's outDir is
+# ../internal/webui/dist, which is outside web/, and that path
+# only lands back on the host if the container can see the repo root too.
+# The working directory is still web/, so every existing `scripts/web npm
+# …` invocation behaves exactly as before.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec docker run --rm -i \
+  -v "$ROOT":/src -w /src/web \
+  -v opskest-npm:/root/.npm \
+  node:24-slim "$@"

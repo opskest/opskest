@@ -1,0 +1,14 @@
+{
+  "method": "POST",
+  "path": "/v2/alerts",
+  "headers": {
+    "Authorization": "GenieKey key-1",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "alias": "opskest-42",
+    "description": "HTTP 503 · 840 ms\nTarget: https://api.example.com\nRunbook: https://runbook.example.com/api-gateway\nhttps://uptime.example.com/monitors/42",
+    "message": "🔴 Down — API Gateway",
+    "source": "opskest"
+  }
+}

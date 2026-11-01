@@ -1,0 +1,32 @@
+# Apache reverse proxy for Opskest, e.g. in a cPanel account's public_html/.htaccess
+# or a VirtualHost. Needs mod_proxy, mod_proxy_http and mod_rewrite, which cPanel
+# VPS and dedicated servers (EasyApache 4) provide; many shared hosts do not
+# allow them or long-running processes.
+#
+# Replace 8080 with the port Opskest listens on (PORT or LISTEN_ADDR in .env).
+# Set APP_URL in .env to your https address, e.g. https://status.example.com.
+# APP_URL must be exactly the address people open: sign-in is refused (403)
+# when the browser's origin differs from it.
+#
+# Not tested here. In particular, check that the two live-update (SSE) streams
+# (/api/stream and /api/public/pages/<slug>/stream) reach the browser about once
+# a second and are not buffered; see deploy/DEPLOYMENT.md. Restore uploads can be up
+# to 1 GiB and monitor imports up to 5 MiB; check any request body limit set by
+# your Apache or hosting configuration (for example LimitRequestBody).
+
+RewriteEngine On
+
+# Send plain HTTP to HTTPS.
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Pass everything to the app. P = proxy. Whether the SSE streams are passed
+# through unbuffered depends on your Apache configuration; verify it.
+RewriteRule ^(.*)$ http://127.0.0.1:8080/$1 [P,L]
+
+# Opskest does not read these two headers (HTTPS behavior comes from APP_URL),
+# so they are harmless to keep or drop. Opskest rate-limits public pages by
+# X-Real-IP, else the first X-Forwarded-For value; Apache's mod_proxy adds
+# X-Forwarded-For by default.
+RequestHeader set X-Forwarded-Proto "https"
+RequestHeader set X-Forwarded-Host "%{HTTP_HOST}e"

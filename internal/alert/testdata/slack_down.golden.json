@@ -1,0 +1,37 @@
+{
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "attachments": [
+      {
+        "blocks": [
+          {
+            "text": {
+              "text": "*URL / Host:* `https://api.example.com`\n*Group:* Payments\n*Details:* HTTP 503 · 840 ms\n*Time:* 2026-09-24 10:00:00 UTC\n*Monitor ID:* `42`\n*Runbook:* \u003chttps://runbook.example.com/api-gateway|link\u003e",
+              "type": "mrkdwn"
+            },
+            "type": "section"
+          },
+          {
+            "elements": [
+              {
+                "text": {
+                  "text": "Open in opskest",
+                  "type": "plain_text"
+                },
+                "type": "button",
+                "url": "https://uptime.example.com/monitors/42"
+              }
+            ],
+            "type": "actions"
+          }
+        ],
+        "color": "#dc2626"
+      }
+    ],
+    "text": "*🔴 Down — API Gateway*"
+  }
+}
