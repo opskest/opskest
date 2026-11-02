@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Sourced by scripts/build-release and scripts/compose-build; not run directly.
+#
+# A checkout that is exactly a release tag (vX.Y.Z) with no local changes builds
+# as that release: it gets the version, the project's public release key
+# (deploy/release.pub) and the release feed address, so Settings, About &
+# updates can check for new versions and verify their signatures. Anything else
+# builds as "dev" with no key and no feed, because modified or unreleased code
+# must not pass as a release.
+#
+# Sets OPSKEST_RELEASE_VERSION (empty for a dev build) and, for a release,
+# OPSKEST_UPDATE_PUBLIC_KEY, OPSKEST_UPDATE_FEED_URL and OPSKEST_UPGRADE_HINT.
+
+# Both functions are defined here; the calling script runs them.
+# opskest_use_latest: switch a clean checkout to the newest release tag.
+opskest_use_latest() {
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    echo "This checkout has local changes; not switching to the latest release." >&2
+    exit 1
+  fi
+  git fetch --tags --quiet
+  local latest
+  latest="$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n 1)"
+  if [ -z "$latest" ]; then
+    echo "No release tag found." >&2
+    exit 1
+  fi
+  echo "Using the latest release, $latest." >&2
+  git checkout --quiet "$latest"
+}
+
+# opskest_detect_release: set the variables described above for this checkout.
+opskest_detect_release() {
+  OPSKEST_RELEASE_VERSION=""
+  _tag="$(git describe --tags --exact-match 2>/dev/null || true)"
+  if [[ "$_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+      echo "Note: this checkout has local changes, so it builds as a development build (no update checks)." >&2
+    elif [ ! -s deploy/release.pub ]; then
+      echo "Note: deploy/release.pub is missing, so this builds as a development build." >&2
+    else
+      OPSKEST_RELEASE_VERSION="${_tag#v}"
+      export OPSKEST_UPDATE_PUBLIC_KEY="$(tr -d '\r\n' < deploy/release.pub)"
+      export OPSKEST_UPDATE_FEED_URL="https://github.com/opskest/opskest/releases/latest/download/manifest.json"
+      export OPSKEST_UPGRADE_HINT="scripts/compose-build --latest"
+    fi
+  else
+    echo "Note: this checkout is not a release, so it builds as a development build (no update checks)." >&2
+    echo "      For the latest release, run this script with --latest." >&2
+  fi
+  unset _tag
+}

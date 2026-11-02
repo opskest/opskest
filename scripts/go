@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Run the Go toolchain in Docker: a reproducible build without installing Go locally.
+# Module + build caches live in named volumes so repeat runs are fast.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec docker run --rm -i \
+  -v "$ROOT":/src -w /src \
+  -v opskest-gomod:/go/pkg/mod \
+  -v opskest-gocache:/root/.cache/go-build \
+  -e CGO_ENABLED="${CGO_ENABLED:-0}" \
+  -e GOFLAGS="-buildvcs=false" \
+  golang:1.27.3-bookworm go "$@"

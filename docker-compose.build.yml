@@ -1,0 +1,17 @@
+# Builds the image from this checkout instead of pulling the official one. Run
+# it with scripts/compose-build, which sets the variables below: on a clean
+# release tag the build is a release build that checks the signed release feed;
+# anywhere else it is a development build that never checks for updates.
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  opskest:
+    build:
+      context: .
+      args:
+        VERSION: ${OPSKEST_VERSION:-dev}
+        UPDATE_PUBLIC_KEY: ${OPSKEST_UPDATE_PUBLIC_KEY:-}
+        UPDATE_FEED_URL: ${OPSKEST_UPDATE_FEED_URL:-}
+    environment:
+      OPSKEST_UPGRADE_HINT: ${OPSKEST_UPGRADE_HINT:-}
+    image: opskest:${OPSKEST_VERSION:-dev}
+    pull_policy: never

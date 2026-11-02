@@ -1,0 +1,329 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Shared semantic tokens. The primary dark experience uses neutral charcoal
+   surfaces, clear tonal layers, and restrained blue actions. Light mode
+   preserves the same hierarchy. Opskest uses a restrained kestrel identity.
+
+   Theme handling covers all three viewer states:
+     :root                              -> complete light palette
+     @media (prefers-color-scheme:dark) -> dark tokens for the un-stamped
+                                           default, guarded so an explicit
+                                           light choice still wins
+     .dark                              -> Tailwind's darkMode:'class' stamp,
+                                           so the in-app toggle wins too
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --ground:        #e8edf2;
+  --surface:       #ffffff;
+  --surface-2:     #f4f6f8;
+  --surface-hover: #dde5eb;
+  --border:        #c5d0da;
+  --border-strong: #6b7f92;
+
+  /* Text roles are shared by body copy, labels, hints and placeholders. */
+  --text:   #0b1722;
+  --text-2: #33475a;
+  --muted:  #455869;
+  --faint:  #546778;
+
+  /* Restrained action accent */
+  --accent:          #08795b;
+  --accent-hover:    #065f47;
+  --accent-fg:       #ffffff;
+  --accent-subtle:   #def4ea;
+  --accent-border:   #86cfb2;
+
+  /* Status */
+  --ok:      #0d7a45;
+  --ok-bg:   #dff7e9;
+  --warn:    #a34a05;
+  --warn-bg: #fff2cf;
+  --danger:  #c0151b;
+  --danger-bg: #fde6e6;
+
+  /* Live-monitor signal: the pulse that says data is arriving. */
+  --live:           var(--ok);
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --font-ui:   'Segoe UI', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+
+    --ground:        #0a0e13;
+    --surface:       #111820;
+    --surface-2:     #18212b;
+    --surface-hover: #202c39;
+    --border:        #2a3848;
+    --border-strong: #6a8095;
+
+    /* Secondary text remains readable on raised surfaces. */
+    --text:   #f4f8fb;
+    --text-2: #d5dfe8;
+    --muted:  #aebdcb;
+    --faint:  #96a6b5;
+
+    --accent:        #2fd9a8;
+    --accent-hover:  #66e6c2;
+    --accent-fg:     #03150f;
+    --accent-subtle: #0c2f29;
+    --accent-border: #1c7a68;
+
+    --ok:      #5ee08a;
+    --ok-bg:   #0f2e1b;
+    --warn:    #f6bb3c;
+    --warn-bg: #33270a;
+    --danger:  #ff6f6c;
+    --danger-bg: #3b1618;
+  }
+}
+
+/* Explicit dark choice (Tailwind darkMode:'class') beats a light OS setting */
+:root.dark {
+  color-scheme: dark;
+
+  --ground:        #0a0e13;
+  --surface:       #111820;
+  --surface-2:     #18212b;
+  --surface-hover: #202c39;
+  --border:        #2a3848;
+  --border-strong: #6a8095;
+
+  --text:   #f4f8fb;
+  --text-2: #d5dfe8;
+  --muted:  #aebdcb;
+  --faint:  #96a6b5;
+
+  --accent:        #2fd9a8;
+  --accent-hover:  #66e6c2;
+  --accent-fg:     #03150f;
+  --accent-subtle: #0c2f29;
+  --accent-border: #1c7a68;
+
+  --ok:      #5ee08a;
+  --ok-bg:   #0f2e1b;
+  --warn:    #f6bb3c;
+  --warn-bg: #33270a;
+  --danger:  #ff6f6c;
+  --danger-bg: #3b1618;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
+/* The signed-in workspace always reserves the scrollbar's width, so a tab with a short page and one with a long page share one content width (not every engine honours scrollbar-gutter on the root). */
+html:has(.workspace-root) { overflow-y: scroll; }
+.workspace-root { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+.workspace-dock { height: calc(68px + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) { .workspace-root { padding-bottom: 0; } }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+body {
+  /* Explicit, token-driven: a transparent body borrows the host's ground */
+  background: var(--ground);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  font-family: var(--font-ui);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Digits that sit in columns must line up — timestamps, counts, durations */
+.tnum, time, .font-mono { font-variant-numeric: tabular-nums; }
+
+/* ── Focus ────────────────────────────────────────────────────────────────────
+   One visible ring for everything focusable, via :focus-visible so it does
+   not fire on mouse click. */
+
+*:focus { outline: none; }
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Command search uses its enclosing panel as the focus boundary. */
+.command-search-input:focus-visible { outline: none; border-radius: 0; }
+
+/* Skip link — first tab stop on every page */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+  border-radius: 0 0 var(--radius) 0;
+}
+.skip-link:focus { left: 0; }
+
+/* ── Scrollbars ───────────────────────────────────────────────────────────── */
+
+/* Slim, rounded scrollbars drawn from the theme tokens, so they follow light,
+   dark and any page brand. WebKit/Blink get the full treatment (rounded thumb
+   inset from the edge, accent on hover); Firefox gets the standard thin form. */
+
+:root {
+  --scroll-thumb: color-mix(in srgb, var(--faint) 45%, transparent);
+  --scroll-thumb-hover: color-mix(in srgb, var(--faint) 75%, transparent);
+}
+
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar { width: 12px; height: 12px; background: transparent; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scroll-thumb);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+    min-height: 32px;
+    min-width: 32px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--scroll-thumb-hover); }
+  ::-webkit-scrollbar-thumb:active { background-color: var(--accent); }
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Live monitoring ──────────────────────────────────────────────────────────
+   This is a real-time monitor, so arrival of data should be visible. */
+
+.live-dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--live);
+  flex-shrink: 0;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+.status-pulse { animation: status-pulse 2s ease-in-out infinite; }
+
+/* ── Modern Visual Polish & Glows ─────────────────────────────────────────── */
+
+/* Smooth latency waterfall segments */
+.waterfall-track {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+
+/* Long unbroken strings (URLs, tokens, error text with a URL in it) wrap
+   instead of stretching their container past the viewport. Elements that
+   truncate (white-space: nowrap) are unaffected. */
+@layer base {
+  .font-mono, code, pre { overflow-wrap: anywhere; }
+}
+
+.spring-button { transition: background-color 150ms, border-color 150ms, color 150ms, transform 280ms cubic-bezier(.2,1.5,.4,1); }
+.spring-button:active:not(:disabled) { transform: scale(.975); }
+@keyframes nav-settle { 0% { transform: translateX(-3px); } 65% { transform: translateX(.6px); } 100% { transform: translateX(0); } }
+.nav-current { animation: nav-settle 260ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .spring-button { transition: none; }
+  .spring-button:active:not(:disabled) { transform: none; }
+  .nav-current { animation: none; }
+}
+::selection { background: var(--accent-subtle); color: var(--text); }
+input, textarea { caret-color: var(--accent); }
+a { text-underline-offset: 3px; }
+
+/* ── Status page presentation ─────────────────────────────────────────────────
+   A page owner picks from a closed set of options (no custom CSS). The status
+   page sets these attributes on <html> while it is open, so portalled dialogs
+   follow too, and removes them again when it unmounts. */
+
+html[data-status-font="humanist"] { --font-ui: Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', sans-serif; }
+html[data-status-font="neutral"]  { --font-ui: 'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif; }
+html[data-status-font="serif"]    { --font-ui: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; }
+html[data-status-font="mono"]     { --font-ui: var(--font-mono); }
+
+/* Square corners: every rounded control and card, but not the pills and dots
+   that are meant to stay round. */
+html[data-status-corners="square"] :is([class*="rounded"]):not([class*="rounded-full"]) { border-radius: 2px; }
+
+/* Header styles. --brand and --brand-fg are the page's accent and the text
+   colour chosen for contrast on it (the shell sets them from the owner's
+   colour; without one they are the app's own accent). The solid header
+   re-maps the text tokens inside it, so the existing utility classes
+   (text-body, text-muted, bg-surface-2, ...) stay legible on any brand
+   colour. */
+:root { --brand: var(--accent); --brand-fg: var(--accent-fg); --brand-inv: #000; }
+@media (prefers-color-scheme: dark) { :root:not(.light) { --brand-inv: #fff; } }
+:root.dark { --brand-inv: #fff; }
+.status-header-tinted {
+  background: color-mix(in srgb, var(--brand) 9%, var(--ground));
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--border));
+}
+.status-header-solid {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-fg);
+  --text: var(--brand-fg);
+  --text-2: var(--brand-fg);
+  /* Secondary text keeps the full foreground: any mix toward the brand colour drops a marginal pair below 4.5:1. */
+  --muted: var(--brand-fg);
+  --faint: var(--brand-fg);
+  --border: color-mix(in srgb, var(--brand-fg) 35%, var(--brand));
+  --border-strong: color-mix(in srgb, var(--brand-fg) 65%, var(--brand));
+  /* Inner surfaces move away from the text colour, never toward it, so the
+     contrast the brand colour was chosen for can only improve. */
+  --surface: color-mix(in srgb, var(--brand-inv) 10%, var(--brand));
+  --surface-2: color-mix(in srgb, var(--brand-inv) 7%, var(--brand));
+  --surface-hover: color-mix(in srgb, var(--brand-inv) 16%, var(--brand));
+  --accent: var(--brand-fg);
+  --accent-hover: var(--brand-fg);
+}
+
+/* Wallboard: a down group card breathes softly; the text stays on a calm tint. */
+@keyframes board-pulse { 0%, 100% { opacity: 0.07; } 50% { opacity: 0.16; } }
+.board-pulse { opacity: 0.1; animation: board-pulse 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .board-pulse { animation: none; opacity: 0.12; } }
+
+/* One drop-down arrow for every select: drawn from the muted text token, inset 13px from the right edge and centred vertically, so it never touches the border and follows light, dark and brand colours. */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-inline-end: 2.25rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 1.15rem) 50%, calc(100% - 0.8rem) 50%;
+  background-size: 0.36rem 0.36rem, 0.36rem 0.36rem;
+  background-repeat: no-repeat;
+}

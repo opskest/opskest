@@ -1,0 +1,45 @@
+{
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "cardsV2": [
+      {
+        "card": {
+          "header": {
+            "title": "🔴 Down — API Gateway"
+          },
+          "sections": [
+            {
+              "widgets": [
+                {
+                  "textParagraph": {
+                    "text": "URL / Host: https://api.example.com\nGroup: Payments\nDetails: HTTP 503 · 840 ms\nTime: 2026-09-24 10:00:00 UTC\nMonitor ID: 42\nRunbook: https://runbook.example.com/api-gateway"
+                  }
+                },
+                {
+                  "buttonList": {
+                    "buttons": [
+                      {
+                        "onClick": {
+                          "openLink": {
+                            "url": "https://uptime.example.com/monitors/42"
+                          }
+                        },
+                        "text": "Open in opskest"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "cardId": "opskest"
+      }
+    ],
+    "text": "🔴 Down — API Gateway"
+  }
+}

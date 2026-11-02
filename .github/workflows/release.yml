@@ -1,0 +1,114 @@
+name: Release
+
+# Push a tag such as v1.2.0. This builds every platform, signs the update
+# manifest with the key stored as a repository secret, publishes a GitHub
+# release, records build provenance and publishes the container image to
+# ghcr.io. The notes come from the matching
+# section of CHANGELOG.md; without one, GitHub generates them from the commits.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # The signing key lives in this environment, which asks for approval before the job starts.
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+
+      - name: Test before releasing
+        run: |
+          cd web && npm ci && npm run build && cd ..
+          go vet ./...
+          go test ./...
+
+      - name: Release notes from the changelog
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          # The section under "## <version> (...)", without its heading line.
+          awk -v v="$version" '/^## /{p=($2==v); next} p' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No CHANGELOG.md section for $version; GitHub will generate the notes."
+            rm -f release-notes.md
+          else
+            wc -c release-notes.md
+          fi
+
+      - name: Build, describe and sign
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          RELEASE_PUBLIC_KEY: ${{ vars.RELEASE_PUBLIC_KEY }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_SIGNING_KEY" ] || [ -z "$RELEASE_PUBLIC_KEY" ]; then
+            echo "Set the RELEASE_SIGNING_KEY secret and the RELEASE_PUBLIC_KEY variable first (see .github/CONTRIBUTING.md)." >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > release.key
+          printf '%s\n' "$RELEASE_PUBLIC_KEY" > release.pub
+          export OPSKEST_UPDATE_PUBLIC_KEY="$(tr -d '\r\n' < release.pub)"
+          export OPSKEST_UPDATE_FEED_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/manifest.json"
+          notes=()
+          if [ -s release-notes.md ]; then notes=(release-notes.md); fi
+          bash scripts/release "$TAG" "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}" "${notes[@]}"
+          rm -f release.key
+
+      - name: Record build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        with:
+          subject-path: dist/*
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -s release-notes.md ]; then
+            gh release create "$TAG" dist/* --title "Opskest $TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" dist/* --title "Opskest $TAG" --generate-notes
+          fi
+
+      - name: Publish the container image
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          RELEASE_PUBLIC_KEY: ${{ vars.RELEASE_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          pubkey="$(printf '%s' "$RELEASE_PUBLIC_KEY" | tr -d '\r\n')"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --name release --use > /dev/null
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            --build-arg VERSION="$version" \
+            --build-arg UPDATE_PUBLIC_KEY="$pubkey" \
+            --build-arg UPDATE_FEED_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/manifest.json" \
+            --label org.opencontainers.image.source="https://github.com/${GITHUB_REPOSITORY}" \
+            --label org.opencontainers.image.version="$version" \
+            --label org.opencontainers.image.licenses=Apache-2.0 \
+            --tag "${image}:${version}" --tag "${image}:latest" \
+            --push .

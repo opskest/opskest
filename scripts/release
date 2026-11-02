@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Build, describe and sign a release in one go.
+#
+#   scripts/release <version> <base-url> [notes.md]
+#
+#   version   e.g. 1.4.0 (a leading "v" is fine)
+#   base-url  https URL the files will be uploaded to, no trailing file name:
+#             GitHub:  https://github.com/opskest/opskest/releases/download/v1.4.0
+#             own host: https://downloads.example.com/opskest/1.4.0
+#   notes.md  optional markdown release notes (max 20 KiB)
+#
+# Environment:
+#   RELEASE_KEY   private key file (default ./release.key; create it once with
+#                 `go run ./cmd/releasetool keygen`)
+#   MIN_VERSION   oldest version allowed to update directly (optional)
+#   SKIP_BUILD=1  reuse the binaries already in dist/
+#   OPSKEST_UPDATE_PUBLIC_KEY  public key to build in (default: contents of the
+#                 .pub file next to RELEASE_KEY)
+#   GO            go command (default: go)
+#
+# The private key is only ever read by `releasetool sign`; it is never printed.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ $# -lt 2 ]; then
+  sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
+  exit 2
+fi
+
+VERSION="${1#v}"
+BASE_URL="${2%/}"
+NOTES="${3:-}"
+KEY="${RELEASE_KEY:-release.key}"
+GO="${GO:-go}"
+
+if ! command -v "$GO" >/dev/null 2>&1; then
+  GO="scripts/go"
+fi
+
+if [ ! -f "$KEY" ]; then
+  echo "error: signing key $KEY not found." >&2
+  echo "Create one once (and back it up):  $GO run ./cmd/releasetool keygen" >&2
+  exit 1
+fi
+
+if [ -n "$NOTES" ] && [ ! -f "$NOTES" ]; then
+  echo "error: notes file $NOTES not found." >&2
+  exit 1
+fi
+
+# 1. Binaries (web UI embedded) for every target, version stamped in. The
+# public half of the signing key is built in (unless OPSKEST_UPDATE_PUBLIC_KEY
+# is already set), so a fresh install can verify updates without pasting the
+# key into Settings; a key saved in Settings still wins over the built-in one.
+PUB="${KEY%.key}.pub"
+if [ -z "${OPSKEST_UPDATE_PUBLIC_KEY:-}" ] && [ -f "$PUB" ]; then
+  OPSKEST_UPDATE_PUBLIC_KEY="$(tr -d '\r\n' < "$PUB")"
+  export OPSKEST_UPDATE_PUBLIC_KEY
+fi
+if [ "${SKIP_BUILD:-}" != "1" ]; then
+  bash scripts/build-release "$VERSION"
+else
+  echo "SKIP_BUILD=1: using the binaries already in dist/"
+fi
+
+# 2. manifest.json: sizes and sha256 of what is in dist/.
+args=(manifest -version "$VERSION" -dir dist -base-url "$BASE_URL")
+[ -n "$NOTES" ] && args+=(-notes "$NOTES")
+[ -n "${MIN_VERSION:-}" ] && args+=(-min-version "$MIN_VERSION")
+$GO run ./cmd/releasetool "${args[@]}"
+
+# 3. Detached ed25519 signature over the exact manifest bytes.
+$GO run ./cmd/releasetool sign -key "$KEY" -file dist/manifest.json
+
+# 4. Check what we are about to publish, if the public half is at hand.
+if [ -f "$PUB" ]; then
+  $GO run ./cmd/releasetool verify -pub "$PUB" -file dist/manifest.json
+fi
+
+echo
+echo "Upload these files to $BASE_URL/ :"
+for f in dist/opskest-* dist/manifest.json dist/manifest.json.sig; do
+  [ -f "$f" ] && echo "  $f"
+done
+echo
+echo "Keep the file names exactly as they are. Then point Settings > Updates at"
+echo "the feed URL: the stable address of manifest.json, e.g."
+echo "  https://github.com/opskest/opskest/releases/latest/download/manifest.json"
+echo
+echo "With GitHub CLI:"
+echo "  gh release create v$VERSION dist/opskest-* dist/manifest.json dist/manifest.json.sig --title v$VERSION${NOTES:+ --notes-file $NOTES}"

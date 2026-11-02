@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Build the image from this checkout and start it with Docker Compose.
+#   scripts/compose-build            build this checkout
+#   scripts/compose-build --latest   switch to the newest release first, then build
+# On a clean release tag the image is a release build: it reports that version
+# and checks the project's release feed, verifying the signed manifest with the
+# public key in deploy/release.pub. Any other checkout builds as a development
+# build that never checks for updates.
+# Most installs should run the official image instead: docker compose up -d
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source scripts/release-env
+if [ "${1:-}" = "--latest" ]; then opskest_use_latest; exec bash "scripts/$(basename "$0")" "${@:2}"; fi
+opskest_detect_release
+export OPSKEST_VERSION="${OPSKEST_RELEASE_VERSION:-dev}"
+exec docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build "$@"

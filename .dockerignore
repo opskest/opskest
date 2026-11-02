@@ -1,0 +1,14 @@
+.git
+web/node_modules
+internal/webui/dist/*
+data
+backups
+.env
+.env.*
+.dev
+tests
+brand
+CLAUDE.md
+assets
+**/*_test.go
+**/testdata

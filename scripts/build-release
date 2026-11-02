@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Build standalone binaries (web UI embedded) into dist/.
+#   scripts/build-release [version | --latest]
+# With no version, a clean checkout of a release tag (git checkout v1.0.2) builds
+# as that release, with the project's public key and feed built in so it can
+# check for signed updates. Anything else builds as "dev" (see scripts/release-env).
+# Needs Go and Node locally. Targets: linux amd64/arm64, windows amd64,
+# darwin arm64. The binary has no other files to install.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source scripts/release-env
+if [ "${1:-}" = "--latest" ]; then opskest_use_latest; exec bash "scripts/$(basename "$0")" "${@:2}"; fi
+if [ -z "${1:-}" ]; then opskest_detect_release; fi
+VERSION="${1:-${OPSKEST_RELEASE_VERSION:-dev}}"
+# Optional: the base64 release public key (release.pub) to embed, so this build can
+# verify and install signed updates without the key being entered in Settings.
+# export OPSKEST_UPDATE_PUBLIC_KEY=$(cat release.pub)
+# Optional: the https address of manifest.json that installs check by default
+# (a feed saved in Settings wins), e.g.
+# export OPSKEST_UPDATE_FEED_URL=https://github.com/opskest/opskest/releases/latest/download/manifest.json
+
+npm --prefix web ci
+npm --prefix web run build
+
+mkdir -p dist
+for target in linux/amd64 linux/arm64 windows/amd64 darwin/arm64; do
+  os="${target%/*}"; arch="${target#*/}"
+  ext=""; [ "$os" = "windows" ] && ext=".exe"
+  out="dist/opskest-${os}-${arch}${ext}"
+  echo "building ${out}"
+  CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
+    go build -trimpath -ldflags "-s -w -X main.version=${VERSION} -X main.updatePublicKey=${OPSKEST_UPDATE_PUBLIC_KEY:-} -X main.updateFeedURL=${OPSKEST_UPDATE_FEED_URL:-}" -o "$out" ./cmd/opskest
+done
+ls -lh dist

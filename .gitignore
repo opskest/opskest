@@ -1,0 +1,46 @@
+# Secrets
+.env
+.env.dev
+
+# Build output
+/bin/
+/opskest
+/opskest.exe
+/web/dist/
+/web/node_modules/
+/internal/webui/dist/*
+!/internal/webui/dist/.gitkeep
+
+# Demo data, load and fixture tooling: local only (the test suites in tests/ are tracked)
+/tests/demo/
+/tests/demo-fixture/
+/tests/demo-seed/
+/tests/loadtest/
+
+# Local data
+/data/
+/backups/
+/.dev/
+*.db
+*.db-wal
+*.db-shm
+
+# Editor and OS files
+.DS_Store
+
+# Local maintainer notes, not part of the project
+/CLAUDE.md
+
+# Monitor exports contain internal endpoints — never commit them
+monitors-export*.json
+opskest-monitors*.json
+opskest-monitors*.csv
+
+# Release signing private key: never commit it
+release.key
+*.key
+
+# Release build output and the public key file (kept as a repository variable)
+/dist/
+release.pub
+!/deploy/release.pub

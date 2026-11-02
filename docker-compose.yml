@@ -1,0 +1,51 @@
+# opskest — run from the repo root:
+#   mkdir -p data backups && sudo chown -R 65532:65532 data backups   # once; container runs as uid 65532
+#   docker compose up -d                # .env is optional; copy .env.example to change settings
+#
+# Runs the official image from ghcr.io, which knows its version and checks for
+# signed updates. To build from source instead (a development build that does
+# not check for updates), add the build file:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# Publishes ONLY ${OPSKEST_HOST}:${OPSKEST_PORT} (default 127.0.0.1:8085) and
+# tells the app to expect that address; set APP_URL for a real domain. Put TLS
+# in front for secure local-account sign-in: nginx + certbot
+# (deploy/nginx.host.conf), or an AWS ALB with ACM (then set
+# OPSKEST_HOST=0.0.0.0 and restrict the port in the security group).
+name: opskest
+services:
+  opskest:
+    image: ghcr.io/opskest/opskest:${OPSKEST_VERSION:-latest}
+    container_name: opskest-app
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Sign-in is refused unless the browser's address matches APP_URL, and
+      # the app is published on OPSKEST_PORT, not the container's own 8080. Set
+      # APP_URL in .env to your real address; this only supplies the local default.
+      APP_URL: ${APP_URL:-http://localhost:${OPSKEST_PORT:-8085}}
+    ports:
+      - "${OPSKEST_HOST:-127.0.0.1}:${OPSKEST_PORT:-8085}:8080"
+    volumes:
+      - ${OPSKEST_DATA_DIR:-./data}:/data         # SQLite database
+      - ${BACKUP_HOST_DIR:-./backups}:/backups   # nightly backups — survive `down -v`
+    sysctls:
+      net.ipv4.ping_group_range: "0 2147483647"  # unprivileged ICMP for ping monitors
+    healthcheck:
+      test: ["CMD", "/opskest", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

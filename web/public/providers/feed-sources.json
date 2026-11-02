@@ -1,0 +1,111 @@
+{
+  "verifiedAt": "2026-10-25T03:36:46.195Z",
+  "format": "RSS 2.0",
+  "feeds": [
+    {
+      "name": "Vercel",
+      "url": "https://www.vercel-status.com/history.rss",
+      "finalURL": "https://www.vercel-status.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:34.330Z"
+    },
+    {
+      "name": "Netlify",
+      "url": "https://www.netlifystatus.com/history.rss",
+      "finalURL": "https://www.netlifystatus.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:34.484Z"
+    },
+    {
+      "name": "Render",
+      "url": "https://status.render.com/history.rss",
+      "finalURL": "https://status.render.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:34.531Z"
+    },
+    {
+      "name": "DigitalOcean",
+      "url": "https://status.digitalocean.com/history.rss",
+      "finalURL": "https://status.digitalocean.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:35.043Z"
+    },
+    {
+      "name": "Twilio",
+      "url": "https://status.twilio.com/history.rss",
+      "finalURL": "https://status.twilio.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:35.250Z"
+    },
+    {
+      "name": "Discord",
+      "url": "https://discordstatus.com/history.rss",
+      "finalURL": "https://discordstatus.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:35.681Z"
+    },
+    {
+      "name": "Zoom",
+      "url": "https://www.zoomstatus.com/history.rss",
+      "finalURL": "https://www.zoomstatus.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:35.737Z"
+    },
+    {
+      "name": "Datadog",
+      "url": "https://status.datadoghq.com/history.rss",
+      "finalURL": "https://status.datadoghq.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:35.798Z"
+    },
+    {
+      "name": "Figma",
+      "url": "https://status.figma.com/history.rss",
+      "finalURL": "https://status.figma.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.184Z"
+    },
+    {
+      "name": "Bitbucket",
+      "url": "https://bitbucket.status.atlassian.com/history.rss",
+      "finalURL": "https://bitbucket.status.atlassian.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.213Z"
+    },
+    {
+      "name": "Jira",
+      "url": "https://jira-software.status.atlassian.com/history.rss",
+      "finalURL": "https://jira-software.status.atlassian.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.291Z"
+    },
+    {
+      "name": "Sentry",
+      "url": "https://status.sentry.io/history.rss",
+      "finalURL": "https://status.sentry.io/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.458Z"
+    },
+    {
+      "name": "Confluence",
+      "url": "https://confluence.status.atlassian.com/history.rss",
+      "finalURL": "https://confluence.status.atlassian.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.817Z"
+    },
+    {
+      "name": "GitLab",
+      "url": "https://status.gitlab.com/pages/5b36dc6502d06804c08349f7/rss",
+      "finalURL": "https://status.gitlab.com/pages/5b36dc6502d06804c08349f7/rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.865Z"
+    },
+    {
+      "name": "Trello",
+      "url": "https://trello.status.atlassian.com/history.rss",
+      "finalURL": "https://trello.status.atlassian.com/history.rss",
+      "status": 200,
+      "checkedAt": "2026-10-25T03:34:36.872Z"
+    }
+  ]
+}

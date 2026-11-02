@@ -1,0 +1,37 @@
+# systemd unit for running the plain binary on Linux.
+#
+#   sudo useradd --system --home /opt/opskest --shell /usr/sbin/nologin opskest
+#   sudo install -d -o opskest -g opskest /opt/opskest
+#   sudo install -o opskest -g opskest -m 0755 opskest /opt/opskest/opskest
+#   sudo cp deploy/opskest.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now opskest
+#
+# Settings go in /opt/opskest/.env (see .env.example). Data and backups are
+# created under /opt/opskest/data and /opt/opskest/backups.
+#
+# Restoring a database from Settings stages it and makes Opskest exit with
+# status 0; the staged file is swapped in at the next start. Restart=always
+# below brings it back after that clean exit (and after a crash). A deliberate
+# "systemctl stop" still stops it.
+[Unit]
+Description=Opskest uptime monitoring
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=opskest
+Group=opskest
+WorkingDirectory=/opt/opskest
+ExecStart=/opt/opskest/opskest serve
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/opskest
+# Unprivileged ICMP for ping monitors (see deploy/DEPLOYMENT.md).
+# net.ipv4.ping_group_range must include this group's id.
+
+[Install]
+WantedBy=multi-user.target
