@@ -22,15 +22,16 @@ import { EmptyState, ErrorRetry, Skeleton, Tabs } from '../ui'
 const ALL: SeriesKey[] = ['p50', 'p90', 'p95', 'p99', 'avg']
 const DEFAULT_ON: SeriesKey[] = ['p50', 'p95', 'p99']
 
+// The median and the fastest / slowest ends have their own place above the
+// chart; these are the figures shown beside them.
 const TILES: { k: keyof LatencyStats; label: string; percentile?: boolean }[] = [
-  { k: 'p50', label: 'p50', percentile: true },
   { k: 'p90', label: 'p90', percentile: true },
   { k: 'p95', label: 'p95', percentile: true },
   { k: 'p99', label: 'p99', percentile: true },
   { k: 'avg', label: 'Average' },
-  { k: 'min', label: 'Fastest' },
-  { k: 'max', label: 'Slowest' },
 ]
+
+const ESTIMATE_TIP = 'Estimated from a histogram, within about 5%'
 
 const RANGE_NAME: Record<LatencyRange, string> = {
   '1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days',
@@ -78,8 +79,21 @@ export function ResponseTimeCard({ monitorId }: { monitorId: number }) {
     ? (data.source === 'daily' ? `from ${dateOnlyServer(data.from)}` : `from ${dateServer(data.from)}`)
     : ''
 
+  const median = data ? data.summary.p50 as number | null : null
+  const approx = (v: number | null) => estimated && v != null
+  // Where the median, the slowest-5% mark and the average sit between the
+  // fastest and slowest check, as percentages of that span.
+  const sm = data?.summary
+  const spread = sm && sm.p50 != null && sm.p95 != null && sm.min != null && sm.max != null && sm.avg != null
+    ? (() => {
+        const span = sm.max - sm.min
+        const at = (v: number) => span > 0 ? Math.min(100, Math.max(0, ((v - sm.min!) / span) * 100)) : 50
+        return { p50: at(sm.p50), p95: at(sm.p95), avg: at(sm.avg) }
+      })()
+    : null
+
   return (
-    <section className="p-5 rounded-[14px] bg-surface border border-default space-y-6" aria-labelledby="rt-title">
+    <section className="p-5 rounded-[14px] bg-surface border border-default space-y-5" aria-labelledby="rt-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 id="rt-title" className="text-base font-semibold text-body">Response time</h3>
@@ -87,18 +101,8 @@ export function ResponseTimeCard({ monitorId }: { monitorId: number }) {
             {RANGE_NAME[range]}
             {startText && <>, counted {startText} <span className="text-faint">({data!.source === 'daily' ? 'daily summaries start on whole days in the server zone' : 'hourly summaries start on whole UTC hours'})</span></>}
             {' · '}
-            {data ? `${count.toLocaleString()} ${count === 1 ? 'check' : 'checks'} with a response time` : <><span className="sr-only">Loading</span><Skeleton className="inline-block h-3 w-28 align-middle" /></>}
+            {data ? `${count.toLocaleString()} ${count === 1 ? 'check' : 'checks'}` : <><span className="sr-only">Loading</span><Skeleton className="inline-block h-3 w-28 align-middle" /></>}
           </p>
-          {data && (
-            <p className="text-xs text-faint mt-1">
-              {estimated
-                ? 'Percentiles are estimates within about 5% (marked ≈). Average, fastest and slowest are exact.'
-                : legacy
-                  ? 'Percentiles are recorded from the upgrade on; showing the average until this range has them.'
-                  : 'Exact values from the recorded checks.'}
-              {' '}Checks that never got a response, such as timeouts and refused connections, have no response time and are not counted.
-            </p>
-          )}
         </div>
         <Tabs<LatencyRange> label="Time range" size="sm" active={range} onChange={setRange}
           tabs={(Object.keys(LATENCY_RANGES) as LatencyRange[]).map(k => ({ key: k, label: LATENCY_RANGES[k].label }))} />
@@ -108,22 +112,46 @@ export function ResponseTimeCard({ monitorId }: { monitorId: number }) {
         <ErrorRetry message={data ? `Could not refresh response times (${err}). Showing data from ${dateServer(loadedAt)}.` : err} onRetry={retry} />
       )}
 
-      <dl className="flex flex-wrap gap-x-7 gap-y-4 py-4 border-y border-default">
-        {TILES.map(({ k, label, percentile }) => {
-          const v = data ? data.summary[k] as number | null : null
-          const approx = percentile && estimated && v != null
-          return (
-            <div key={k}>
-              <dt className="text-xs text-muted">{label}</dt>
-              <dd className="text-base font-medium text-body tnum mt-1" title={approx ? 'Estimated from a histogram, within about 5%' : undefined}>
-                {approx && <span aria-hidden="true" className="text-faint">≈ </span>}
-                {approx && <span className="sr-only">About </span>}
-                {data ? ms(v) : '—'}
-              </dd>
-            </div>
-          )
-        })}
-      </dl>
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <div>
+          <div className="text-xs text-muted">Typical response (median)</div>
+          <div className="text-3xl font-semibold text-body tnum leading-none mt-1.5" title={approx(median) ? ESTIMATE_TIP : undefined}>
+            {approx(median) && <><span aria-hidden="true" className="text-faint text-xl">≈ </span><span className="sr-only">About </span></>}
+            {data ? ms(median) : '—'}
+          </div>
+        </div>
+        <dl className="flex flex-wrap gap-x-6 gap-y-3">
+          {TILES.map(({ k, label, percentile }) => {
+            const v = data ? data.summary[k] as number | null : null
+            const est = percentile && estimated && v != null
+            return (
+              <div key={k}>
+                <dt className="text-xs text-muted">{label}</dt>
+                <dd className="text-sm font-medium text-body tnum mt-0.5" title={est ? ESTIMATE_TIP : undefined}>
+                  {est && <span aria-hidden="true" className="text-faint">≈ </span>}
+                  {est && <span className="sr-only">About </span>}
+                  {data ? ms(v) : '—'}
+                </dd>
+              </div>
+            )
+          })}
+        </dl>
+      </div>
+
+      {data && count > 0 && spread && (
+        <div>
+          <div className="relative h-4" aria-hidden="true">
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-surface-2" />
+            <div className="absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-accent/30" style={{ left: `${spread.p50}%`, width: `${Math.max(spread.p95 - spread.p50, 0)}%` }} />
+            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3 w-0.5 rounded-full bg-faint" style={{ left: `${spread.avg}%` }} />
+            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-accent ring-2 ring-surface" style={{ left: `${spread.p50}%` }} />
+          </div>
+          <div className="flex justify-between text-xs text-faint tnum mt-1.5">
+            <span>Fastest {ms(data.summary.min)}</span>
+            <span>Slowest {ms(data.summary.max)}</span>
+          </div>
+        </div>
+      )}
 
       {data && count === 0 ? (
         <EmptyState compact title="No check in this range recorded a response time.">Either no check ran in this window, or every check failed before a response arrived. Failed checks that did get a response, such as an error page, are counted.</EmptyState>
@@ -142,6 +170,20 @@ export function ResponseTimeCard({ monitorId }: { monitorId: number }) {
             <div className="h-[180px] rounded-lg bg-surface-2/40 animate-pulse" />
           )}
         </>
+      )}
+
+      {data && (
+        <details className="text-xs text-faint">
+          <summary className="cursor-pointer w-fit hover:text-muted">How this is counted</summary>
+          <p className="mt-1.5 max-w-prose leading-relaxed">
+            {estimated
+              ? 'Percentiles are estimates within about 5% (marked ≈). Average, fastest and slowest are exact.'
+              : legacy
+                ? 'Percentiles are recorded from the upgrade on; showing the average until this range has them.'
+                : 'Exact values from the recorded checks.'}
+            {' '}Checks that never got a response, such as timeouts and refused connections, have no response time and are not counted. The shaded stretch runs from the median to p95 and the thin tick marks the average.
+          </p>
+        </details>
       )}
     </section>
   )
