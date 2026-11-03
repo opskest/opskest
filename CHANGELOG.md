@@ -3,6 +3,18 @@
 Each release is described here. The text under a version heading becomes the
 GitHub release notes and the notes shown in Settings, About & updates.
 
+## 1.0.3 (2026-11-03)
+
+### Monitoring
+
+- Request timing on a monitor's Diagnostics tab is now a waterfall: each layer starts where the previous one ended, with a dashed outline for its usual time, and a strip of recent checks to inspect an earlier one.
+- Time spent outside the final request, such as redirects, shows as its own layer, so the layers add up to the check's total.
+- Response time leads with the median and a fastest-to-slowest spread bar, with p90, p95, p99 and the average beside it.
+
+### Operations
+
+- The documentation and `.env.example` now say how to change the host port: set `OPSKEST_PORT` in `.env`.
+
 ## 1.0.2 (2026-11-02)
 
 First public release of Opskest, a self-hosted uptime monitoring workspace for teams.
