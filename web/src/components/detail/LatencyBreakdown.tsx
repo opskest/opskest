@@ -5,11 +5,12 @@ import { Icon } from '../ui'
 
 // Where a check's time went, hop by hop — resolver, network, the edge
 // (ALB / Nginx / CDN), the app, the download — judged against this
-// monitor's own history (last 50 checks): a path view coloured by health,
-// ranked findings with what to check, per-layer stats, and a stacked
-// chart of recent checks (click one to inspect it).
+// monitor's own history (last 50 checks): a waterfall where each layer starts
+// where the previous one ended (dashed outline = its usual time), ranked
+// findings with what to check, and a strip of recent checks (select one to
+// inspect it).
 
-type Key = 'dns' | 'connect' | 'tls' | 'edge' | 'app' | 'server' | 'download'
+type Key = 'dns' | 'connect' | 'tls' | 'edge' | 'app' | 'server' | 'download' | 'other'
 
 interface Phase { key: Key; ms: number }
 
@@ -21,6 +22,7 @@ const META: Record<Key, { label: string; layer: string; where: string; color: st
   app: { label: 'App processing', layer: 'App', where: 'Time the app reports spending on the request', color: 'bg-emerald-500' },
   server: { label: 'Server response', layer: 'Edge + app', where: 'Request sent → first byte: load balancer + app together', color: 'bg-emerald-500' },
   download: { label: 'Download', layer: 'Transfer', where: 'Receiving the response body', color: 'bg-teal-400' },
+  other: { label: 'Redirects & other', layer: 'Earlier hops', where: 'Time outside the final request: redirects followed first, plus anything not timed', color: 'bg-indigo-400' },
 }
 
 function phasesOf(b: Heartbeat): Phase[] | null {
@@ -35,6 +37,10 @@ function phasesOf(b: Heartbeat): Phase[] | null {
   if (b.appMs >= 0 && b.appMs <= wait) out.push({ key: 'edge', ms: wait - b.appMs }, { key: 'app', ms: b.appMs })
   else out.push({ key: 'server', ms: wait })
   out.push({ key: 'download', ms: download })
+  // The timed layers describe the final request only; a redirect chain or
+  // untimed work shows up as the gap to the check's total.
+  const gap = b.latencyMs >= 0 ? b.latencyMs - out.reduce((a, p) => a + p.ms, 0) : 0
+  if (gap >= 10 && gap >= b.latencyMs * 0.03) out.unshift({ key: 'other', ms: gap })
   return out
 }
 
@@ -101,6 +107,9 @@ function findings(phases: Phase[], stats: Partial<Record<Key, Stats>>, n: number
       case 'server':
         out.push({ key: 'server', sev: h, title: `Server response ${ms(p.ms)}${tail}`, detail: 'After the request reached the server, it took longer than usual to start answering. That is the load balancer and the app together; the network up to the edge is fine.', check: 'The app and its database first; then proxy / LB queueing. Add a Server-Timing header to tell the two apart.' })
         break
+      case 'other':
+        out.push({ key: 'other', sev: h, title: `Redirects & other ${ms(p.ms)}${tail}`, detail: 'More time than usual went outside the final request: redirects the monitor followed first, or work that is not timed layer by layer.', check: 'Whether the URL redirects (http to https, www, trailing slash). Monitor the final address directly to remove this time.' })
+        break
       case 'download':
         out.push({ key: 'download', sev: h, title: `Download ${ms(p.ms)}${tail}`, detail: 'Receiving the response body is slower than usual: a bigger payload or reduced bandwidth.', check: 'Response size for this endpoint, compression, and bandwidth on the path.' })
         break
@@ -145,81 +154,125 @@ export function LatencyBreakdown({ beat: latest, recent, newestTs }: { beat: Hea
 
   const nowTotal = beat.latencyMs >= 0 ? beat.latencyMs : total
   const usualTotal = n >= 5 ? quantile(history.map(b => b.latencyMs), 0.5) : null
-  const p95Total = n >= 5 ? quantile(history.map(b => b.latencyMs), 0.95) : null
   const delta = usualTotal != null ? nowTotal - usualTotal : 0
   const problems = found.filter(f => f.sev !== 'ok')
+
+  const compared = n >= 5
+  const top = [...phases].sort((a, b) => b.ms - a.ms)[0]
+  const topShare = Math.round((top.ms / total) * 100)
+  const worst: Health = problems.some(f => f.sev === 'spike') ? 'spike' : problems.length > 0 ? 'slow' : 'ok'
+  const verdict = { ok: 'Normal', slow: 'Slower than usual', spike: 'Spike' }[worst]
+  const verdictStyle = { ok: 'bg-ok/10 text-ok', slow: 'bg-warn/15 text-warn', spike: 'bg-danger/15 text-danger' }[worst]
+  let offset = 0
+  const rows = phases.map(p => { const start = offset; offset += p.ms; return { p, start } })
+  const strip = history.slice(0, 30).reverse().map(b => ({ b, ph: phasesOf(b)! }))
+  const stripMax = Math.max(1, ...strip.map(s => s.ph.reduce((a, p) => a + p.ms, 0)))
+  const gridLines = 'repeating-linear-gradient(to right, transparent 0, transparent calc(25% - 1px), rgb(128 128 128 / 0.2) calc(25% - 1px), rgb(128 128 128 / 0.2) 25%)'
+  const cols = 'grid grid-cols-[7.25rem_minmax(0,1fr)_4.5rem] sm:grid-cols-[11rem_minmax(0,1fr)_5.5rem] items-center gap-x-3'
 
   return (
     <div className="rounded-[14px] bg-surface border border-default overflow-hidden">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4 pb-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-body">Request timing</h3>
-          <p className="text-sm text-muted mt-2">
+          <p className="text-sm text-muted mt-1.5">
             {picked != null ? <>Check at {dateServer(beat.ts)} · <button type="button" className="text-accent hover:underline" onClick={() => setPicked(null)}>back to latest</button></> : newestTs != null && latest.ts !== newestTs ? <>Latest check with timings ({dateServer(latest.ts)}); the newest check recorded none</> : 'Latest check'}
-            {n >= 5 && <> · compared with the last {n} checks</>}
+            {compared && <> · compared with the last {n} checks</>}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {usualTotal != null && Math.abs(delta) >= 50 && (
-            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full tnum ${delta > 0 ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok'}`}>
-              {delta > 0 ? '+' : '−'}{ms(Math.abs(delta))} vs usual
-            </span>
-          )}
-          <div className="text-right">
-            <div className="text-2xl font-semibold tnum text-body leading-none">{ms(nowTotal)}</div>
-            {usualTotal != null && <div className="text-[11px] text-faint mt-1 tnum">usually {ms(usualTotal)} · p95 {ms(p95Total)} · last {n} checks</div>}
+        {compared && <span className={`text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${verdictStyle}`}>{verdict}</span>}
+      </div>
+
+      {/* Total and what dominated it */}
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3 px-5 pt-4 pb-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-4xl font-semibold tnum text-body leading-none">{ms(nowTotal)}</span>
+            {usualTotal != null && (
+              <span className="text-sm text-muted tnum">
+                usually {ms(usualTotal)}
+                {Math.abs(delta) >= 50 && <span className={`ml-1.5 font-medium ${delta > 0 ? 'text-danger' : 'text-ok'}`}>{delta > 0 ? '+' : '−'}{ms(Math.abs(delta))}</span>}
+              </span>
+            )}
           </div>
+          <p className="text-sm text-body-2 mt-2">
+            Mostly <span className="font-semibold text-body">{META[top.key].label.toLowerCase()}</span>
+            <span className="text-muted tnum"> · {topShare}% of the time</span>
+          </p>
         </div>
       </div>
 
-      {/* Stacked timeline */}
-      <div className="px-5">
-        <div className="flex h-8 rounded-lg overflow-hidden bg-surface-2 gap-[2px]" role="img"
-          aria-label={phases.map(p => `${META[p.key].label} ${p.ms} ms`).join(', ')}>
-          {phases.filter(p => p.ms > 0).map(p => {
-            const pct = (p.ms / total) * 100
+      {/* Waterfall: each layer starts where the previous one ended */}
+      <div className="mx-5 rounded-xl border border-default bg-surface-2/30 py-2">
+        <div className={`${cols} px-4 pb-1`} aria-hidden="true">
+          <span className="text-[11px] uppercase tracking-wider text-faint">Layer</span>
+          <div className="relative h-4 text-[11px] text-faint tnum">
+            {[0, 0.25, 0.5, 0.75, 1].map(f => (
+              <span key={f} className={`absolute top-0 whitespace-nowrap ${f === 0 ? '' : f === 1 ? '-translate-x-full' : '-translate-x-1/2'}`} style={{ left: `${f * 100}%` }}>{f === 0 ? '0' : ms(Math.round(total * f))}</span>
+            ))}
+          </div>
+          <span className="text-[11px] uppercase tracking-wider text-faint text-right">Time</span>
+        </div>
+        <ol>
+          {rows.map(({ p, start }) => {
+            const h = health(p.ms, stats[p.key], n)
+            const layerName = (p.key === 'tls' || p.key === 'edge') && beat.edge ? beat.edge.split(' · ').pop() : META[p.key].layer
+            const usual = stats[p.key]?.p50
+            const share = Math.round((p.ms / total) * 100)
             return (
-              <div key={p.key} style={{ width: `${Math.max(pct, 0.8)}%` }} title={`${META[p.key].label}: ${ms(p.ms)} (${Math.round(pct)}%)`}
-                className={`${META[p.key].color} flex items-center justify-center min-w-0 px-1.5`}>
-                {pct >= 14 && <span className="text-[11px] font-semibold text-white/95 truncate tnum">{META[p.key].label} · {ms(p.ms)}</span>}
-              </div>
+              <li key={p.key} className={`${cols} px-4 py-1.5 ${h === 'spike' ? 'bg-danger/[0.05]' : h === 'slow' ? 'bg-warn/[0.05]' : ''}`} title={META[p.key].where}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${META[p.key].color}`} />
+                    <span className="text-[13px] text-body truncate">{META[p.key].label}</span>
+                    {h !== 'ok' && <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-px rounded-md ${h === 'spike' ? 'bg-danger/15 text-danger' : 'bg-warn/15 text-warn'}`}>{h === 'spike' ? 'Spike' : 'Slow'}</span>}
+                  </div>
+                  <div className="text-[11px] text-faint truncate pl-4 tnum">{layerName}{compared && usual != null ? ` · usual ${ms(usual)}` : ''}</div>
+                </div>
+                <div className="relative h-7 rounded-md overflow-hidden" style={{ backgroundImage: gridLines }}>
+                  {compared && usual != null && usual > 0 && (
+                    <div aria-hidden="true" className="absolute inset-y-0 rounded-md border border-dashed border-faint/60"
+                      style={{ left: `${(start / total) * 100}%`, width: `${Math.max((usual / total) * 100, 0.6)}%` }} />
+                  )}
+                  <div className={`absolute inset-y-1 rounded ${META[p.key].color}`}
+                    style={{ left: `${(start / total) * 100}%`, width: `${Math.max((p.ms / total) * 100, 0.6)}%` }} />
+                </div>
+                <div className="text-right">
+                  <div className={`text-[15px] font-semibold tnum leading-tight ${h === 'ok' ? 'text-body' : HEALTH_TEXT[h]}`}>{ms(p.ms)}</div>
+                  <div className="text-[11px] text-faint tnum">{share}%</div>
+                </div>
+              </li>
             )
           })}
-        </div>
+        </ol>
+        {compared && <p className="px-4 pt-1 text-[11px] text-faint">The dashed outline marks each layer's usual time.</p>}
       </div>
 
-      {/* Hops */}
-      <ol className="grid gap-2 px-5 py-4" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(9.5rem, 1fr))` }}>
-        {phases.map((p, i) => {
-          const h = health(p.ms, stats[p.key], n)
-          const layerName = (p.key === 'tls' || p.key === 'edge') && beat.edge ? beat.edge.split(' · ').pop() : META[p.key].layer
-          const usual = stats[p.key]?.p50
-          const share = Math.round((p.ms / total) * 100)
-          return (
-            <li key={p.key} className={`rounded-lg border ${h === 'spike' ? 'border-danger/45 bg-danger/[0.04]' : h === 'slow' ? 'border-warn/45 bg-warn/[0.04]' : 'border-default bg-surface-2/30'}`}
-              title={META[p.key].where}>
-              <div className="px-3 py-3 flex flex-col gap-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-faint truncate">
-                    <span aria-hidden="true" className={`mr-1.5 inline-block h-2 w-2 rounded-full align-baseline ${META[p.key].color}`} /><span className="text-muted tnum mr-1">{i + 1}</span>{layerName}
+      {/* Recent checks: click one to inspect it */}
+      {strip.length >= 2 && (
+        <div className="px-5 pt-4 pb-5">
+          <div className="flex items-center justify-between text-[11px] text-faint mb-2">
+            <span>Recent checks · select one to inspect</span>
+          </div>
+          <div className="flex items-end gap-[3px] h-10" role="group" aria-label="Recent checks">
+            {strip.map(({ b, ph }) => {
+              const t = ph.reduce((a, p) => a + p.ms, 0)
+              const sel = b.ts === beat.ts
+              return (
+                <button key={b.ts} type="button" onClick={() => setPicked(b.ts === latest.ts ? null : b.ts)}
+                  aria-pressed={sel} aria-label={`Check at ${dateServer(b.ts)}, ${ms(b.latencyMs >= 0 ? b.latencyMs : t)}`} title={`${dateServer(b.ts)} · ${ms(b.latencyMs >= 0 ? b.latencyMs : t)}`}
+                  className={`flex-1 min-w-0 h-full flex items-end rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${sel ? '' : 'opacity-60 hover:opacity-100'}`}>
+                  <span className={`w-full flex flex-col-reverse rounded-sm overflow-hidden ${sel ? 'ring-2 ring-accent' : ''}`} style={{ height: `${Math.max((t / stripMax) * 100, 6)}%` }}>
+                    {ph.filter(p => p.ms > 0).map(p => <span key={p.key} className={META[p.key].color} style={{ height: `${(p.ms / Math.max(1, t)) * 100}%` }} />)}
                   </span>
-                  {h !== 'ok' && <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-px rounded-md ${h === 'spike' ? 'bg-danger/15 text-danger' : 'bg-warn/15 text-warn'}`}>{h === 'spike' ? 'Spike' : 'Slow'}</span>}
-                </div>
-                <span className="text-[12px] text-body-2 truncate">{META[p.key].label}</span>
-                <span className={`text-xl font-semibold tnum leading-tight ${h === 'ok' ? 'text-body' : HEALTH_TEXT[h]}`}>{ms(p.ms)}</span>
-                <div className="flex items-center justify-between text-[11px] text-faint tnum">
-                  <span>{usual != null && n >= 5 ? `usual ${ms(usual)}` : '\u00a0'}</span>
-                  <span>{share}%</span>
-                </div>
-                <div className="mt-0.5 h-1 rounded-full bg-surface-2 overflow-hidden" aria-hidden="true">
-                  <div className={`h-full ${META[p.key].color}`} style={{ width: `${Math.max(share, 2)}%` }} />
-                </div>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {strip.length < 2 && <div className="h-5" />}
 
       {/* Findings: only when a layer is slower than usual */}
       {problems.length > 0 && (

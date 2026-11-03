@@ -29,7 +29,9 @@ mkdir -p data backups && sudo chown -R 65532:65532 data backups
 docker compose up -d
 ```
 
-Open <http://localhost:8085> and create the first administrator. For a real domain, copy `.env.example` to `.env` and set `APP_URL` (section 2). Upgrade later with `docker compose pull && docker compose up -d`.
+Open <http://localhost:8085> and create the first administrator. Upgrade later with `docker compose pull && docker compose up -d`.
+
+To change the port, copy `.env.example` to `.env`, set `OPSKEST_PORT` (for example `OPSKEST_PORT=9000`), and run `docker compose up -d` again. The sign-in address follows it. For a real domain, set `APP_URL` in the same file (section 2).
 
 Build the latest release from source instead (it still checks for signed updates):
 
@@ -101,7 +103,9 @@ docker compose ps
 docker compose logs -f opskest
 ```
 
-Without a `.env`, Compose defaults `APP_URL` to `http://localhost:8085`, which is right for a local trial: open <http://localhost:8085>. If you set only `OPSKEST_PORT`, the default `APP_URL` follows it.
+Without a `.env`, Compose defaults `APP_URL` to `http://localhost:8085`, which is right for a local trial: open <http://localhost:8085>.
+
+To change the port on the host, copy `.env.example` to `.env` and edit the `OPSKEST_PORT` line (remove the leading `#`), for example `OPSKEST_PORT=9000`, then run `docker compose up -d`. If you set only `OPSKEST_PORT`, the default `APP_URL` follows it. Leave the container's own port (8080) alone.
 
 Settings that matter for Compose:
 

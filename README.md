@@ -141,8 +141,11 @@ Open <http://localhost:8085> and create the first administrator. The
 container runs as uid 65532, so `./data` and `./backups` must be owned by it on
 the host before the first start. Compose pulls the official image and
 publishes the app on `127.0.0.1:8085` only; it never binds ports 80 or 443.
-To use another port, put `OPSKEST_PORT=9000` in `.env`: the address Opskest
-expects for sign-in follows it.
+**To change the port** people open (the host port), copy `.env.example` to
+`.env` and set `OPSKEST_PORT`, for example `OPSKEST_PORT=9000`, then run
+`docker compose up -d` again. The sign-in address follows it
+(`http://localhost:9000`). The port inside the container stays 8080; only
+`OPSKEST_PORT` changes.
 
 Opskest serves plain HTTP and has no TLS or certificate management. For a
 public install, put your host nginx in front to terminate TLS (a sample is in
