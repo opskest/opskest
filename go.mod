@@ -10,7 +10,7 @@ require (
 	github.com/prometheus-community/pro-bing v0.9.1
 	github.com/tidwall/gjson v1.20.0
 	golang.org/x/sys v0.49.0
-	modernc.org/sqlite v1.61.0
+	modernc.org/sqlite v1.61.1
 )
 
 require (
