@@ -3,6 +3,23 @@
 Each release is described here. The text under a version heading becomes the
 GitHub release notes and the notes shown in Settings, About & updates.
 
+## 1.0.4 (2026-11-20)
+
+### Status pages
+
+- Every status page and wallboard now has an "Opskest credit" switch (Appearance). It is on by default, so existing pages look the same. Turn it off to remove "Powered by Opskest", the Opskest mark and the Opskest tab icon, leaving only your own logo, favicon and title. Leaving it on helps the project.
+- Pages can set their own favicon, separate from the logo.
+- The wallboard shows the page's logo in place of the Opskest brand.
+
+### Updates
+
+- The update notice on Overview now lists the first few changes in the new release, with a link to the full notes.
+- Settings, About & updates keeps the notes of the version you are running, so you can see what your last update changed.
+
+### Maintenance
+
+- Updated dependencies: SQLite driver 1.62.0, PostgreSQL driver 5.13.0, gjson 1.20.2, golang.org/x/sys 0.50.0 and Vite 6.4.6.
+
 ## 1.0.3 (2026-11-03)
 
 ### Monitoring
