@@ -345,6 +345,25 @@ const ORDERED = /^\s*\d{1,3}[.)]\s+(.*)$/
 const HEADING = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/
 const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/
 
+/** Inline pieces as plain text: bold and code lose their markers, a link keeps its label. */
+export function inlinePlain(items: Inline[]): string {
+  return items.map(i => i.text).join('')
+}
+
+/**
+ * The first `max` bullet points of the release notes as plain text, with how
+ * many more there are. Release notes without bullets give their first
+ * paragraph instead, so a short note still reads as a summary.
+ */
+export function noteHighlights(blocks: Block[], max: number): { items: string[]; more: number } {
+  const bullets = blocks.flatMap(b => (b.kind === 'list' ? b.items.map(inlinePlain) : []))
+  const all = bullets.length > 0
+    ? bullets
+    : blocks.filter((b): b is Extract<Block, { kind: 'paragraph' }> => b.kind === 'paragraph').slice(0, 1).map(b => inlinePlain(b.inlines))
+  const items = all.map(s => s.trim()).filter(Boolean)
+  return { items: items.slice(0, max), more: Math.max(0, items.length - max) }
+}
+
 /** Markdown release notes to a flat list of blocks: headings, paragraphs, lists and code. */
 export function parseNotes(markdown: string | null | undefined): Block[] {
   if (typeof markdown !== 'string' || markdown.trim() === '') return []

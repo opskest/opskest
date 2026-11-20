@@ -133,11 +133,11 @@ function NotesView({ blocks, clamp = false }: { blocks: Block[]; clamp?: boolean
 }
 
 /** The newest release's notes, open by default, about eight lines until "Show all". */
-function WhatsNew({ meta, blocks }: { meta: string; blocks: Block[] }) {
+function WhatsNew({ meta, blocks, title = "What's new", defaultOpen = true }: { meta: string; blocks: Block[]; title?: string; defaultOpen?: boolean }) {
   const [all, setAll] = useState(false)
   const long = noteLines(blocks) > 8
   return (
-    <Collapsible title="What's new" defaultOpen>
+    <Collapsible title={title} defaultOpen={defaultOpen}>
       <div className="space-y-2">
         {meta && <SoftNote>{meta}</SoftNote>}
         <NotesView blocks={blocks} clamp={long && !all} />
@@ -484,6 +484,10 @@ export function UpdatesPanel({ onData, scrollHere = false }: { onData?: (p: Upda
             )}
 
             {canShowInstall && <WhatsNew meta={meta} blocks={notes} />}
+            {/* Up to date: the notes of the version running now, so people can see what the last update changed. */}
+            {!canShowInstall && !dev && !showCheckError && !!check.latest && bareVersion(check.latest) === bareVersion(data.current) && notes.length > 0 && (
+              <WhatsNew title={`What's new in ${vTag(data.current)}`} defaultOpen={false} meta={meta} blocks={notes} />
+            )}
 
             {check.error && check.available && check.latest && (
               <SoftNote>The last check could not reach the update source: <span className="font-mono">{check.error}</span>. The update above was found earlier.</SoftNote>

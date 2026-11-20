@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   IDLE_GRACE_MS, RESTART_TIMEOUT_MS, compareVersions, formatBytes, isActivePhase, isDevVersion, linkText,
-  normalizePayload, parseInline, parseNotes, phaseLabel, pollAction, shouldShowBanner, stepStates, validFeedUrl, versionChanged,
+  noteHighlights, normalizePayload, parseInline, parseNotes, phaseLabel, pollAction, shouldShowBanner, stepStates, validFeedUrl, versionChanged,
 } from '../../web/src/lib/updates.ts'
 
 test('compareVersions follows semver precedence, with v prefixes and build metadata', () => {
@@ -84,6 +84,16 @@ test('parseNotes handles headings, lists, paragraphs, code and ignores rules', (
   assert.equal(blocks[3].ordered, true)
   assert.equal(blocks[4].text, 'go run .')
   assert.equal(blocks[5].inlines[0].text, 'quoted')
+})
+
+test('noteHighlights takes the first bullets as plain text and counts the rest', () => {
+  const md = '## 1.0.4\n\n### Monitoring\n\n- **Faster** checks with `retries`\n- See [the guide](https://example.com/g)\n\n### Operations\n\n- Third\n- Fourth\n'
+  const h = noteHighlights(parseNotes(md), 3)
+  assert.deepEqual(h.items, ['Faster checks with retries', 'See the guide', 'Third'])
+  assert.equal(h.more, 1)
+  // No bullets: the first paragraph stands in.
+  assert.deepEqual(noteHighlights(parseNotes('First line.\n\nSecond paragraph.'), 3), { items: ['First line.'], more: 0 })
+  assert.deepEqual(noteHighlights([], 3), { items: [], more: 0 })
 })
 
 test('parseNotes tolerates empty, unterminated and hostile input without producing markup', () => {
