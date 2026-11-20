@@ -9,4 +9,4 @@ exec docker run --rm -i \
   -v opskest-gocache:/root/.cache/go-build \
   -e CGO_ENABLED="${CGO_ENABLED:-0}" \
   -e GOFLAGS="-buildvcs=false" \
-  golang:1.27.3-bookworm go "$@"
+  golang:1.27.4-bookworm go "$@"

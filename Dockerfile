@@ -8,7 +8,7 @@ RUN npm ci
 COPY web/ ./
 RUN npm run build -- --outDir /out --emptyOutDir
 
-FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.4-bookworm AS build
 ARG VERSION=dev
 # Official images set these so installs check the project's signed releases
 # for updates. A local build leaves them empty and checks nothing.
