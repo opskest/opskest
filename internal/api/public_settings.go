@@ -28,6 +28,8 @@ func publicPageSettings(p *store.Page) map[string]any {
 		"feedEnabled":     st.FeedEnabled,
 		"showMaintenance": st.ShowMaintenance,
 		"canonicalUrl":    st.CanonicalURL,
+		"showPoweredBy":   st.ShowPoweredBy,
+		"faviconUrl":      st.FaviconURL,
 	}
 }
 

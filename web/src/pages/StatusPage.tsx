@@ -17,7 +17,7 @@ import { useLocation, useSearch } from 'wouter'
 import { Board } from '../components/board/Board'
 import { ReconnectingBanner, TopStrip } from '../components/board/TopStrip'
 import { ListView, type PageSection } from '../components/status/ListView'
-import { overallFrom, StatusFooter, StatusMessage, StatusShell } from '../components/status/StatusChrome'
+import { overallFrom, StatusFooter, StatusMessage, StatusShell, usePageFavicon } from '../components/status/StatusChrome'
 import { Alert, Button, ErrorRetry, FullScreenSpinner } from '../components/ui'
 import { api, ApiError, errorText } from '../lib/api'
 import type { BoardGroup } from '../lib/boardLayout'
@@ -88,6 +88,9 @@ function LivePage({ slug, data, extra, board, refreshError, onRefresh }: { slug:
     return () => { document.title = prev }
   }, [data.page.title])
 
+  // The list view sets the icon through its own shell; the board has none.
+  usePageFavicon(extra.settings, data.page.branding, board)
+
   const now = useCoarseNow(live.lastUpdate)
   const connected = live.connected
   const isPublic = data.page.visibility === 'public'
@@ -127,6 +130,8 @@ function LivePage({ slug, data, extra, board, refreshError, onRefresh }: { slug:
         receivedAt={live.lastUpdate}
         title={data.page.title}
         alarm={alarm}
+        logoUrl={data.page.branding?.logoUrl}
+        showBrand={extra.settings.showPoweredBy}
       />
       {!connected && live.lastUpdate > 0 && <ReconnectingBanner receivedAt={live.lastUpdate} />}
       {refreshError && <Alert tone="warn">{refreshError} <button type="button" className="underline" onClick={onRefresh}>Try again</button></Alert>}

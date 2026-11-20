@@ -49,6 +49,15 @@ type PageSettings struct {
 	// reachable at when it sits behind a reverse proxy under its own name.
 	// Used for the canonical link, feed and summary URLs and badge snippets.
 	CanonicalURL string `json:"canonicalUrl"`
+
+	// ShowPoweredBy keeps "Powered by Opskest" in the footer and the Opskest
+	// mark where the page has no logo of its own. On by default, also for
+	// pages saved before the option existed. Off makes the page white-label:
+	// no Opskest name, mark or favicon on it.
+	ShowPoweredBy bool `json:"showPoweredBy"`
+
+	// FaviconURL is an https icon for the browser tab. Empty uses the logo.
+	FaviconURL string `json:"faviconUrl"`
 }
 
 // PageBanner is the pinned announcement shown above the services.
@@ -66,6 +75,7 @@ func DefaultPageSettings() PageSettings {
 		RefreshSeconds:  60,
 		FeedEnabled:     true,
 		ShowMaintenance: true,
+		ShowPoweredBy:   true,
 	}
 }
 

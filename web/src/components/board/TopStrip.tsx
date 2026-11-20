@@ -60,7 +60,7 @@ function Totals({ counts }: { counts: Record<Status, number> }) {
 }
 
 export const TopStrip = memo(function TopStrip({
-  counts, clusters, connectivity, receivedAt, title, exitHref, viewSwitcher, showThemeSlider = true, alarm,
+  counts, clusters, connectivity, receivedAt, title, exitHref, viewSwitcher, showThemeSlider = true, alarm, logoUrl, showBrand = true,
 }: {
   counts: Record<Status, number>
   clusters: Cluster[]
@@ -71,11 +71,15 @@ export const TopStrip = memo(function TopStrip({
   viewSwitcher?: React.ReactNode
   showThemeSlider?: boolean
   alarm?: PageAlarm
+  /** A status page's own logo replaces the Opskest brand. */
+  logoUrl?: string
+  /** Show the Opskest brand when there is no logo. Off for a white-label page. */
+  showBrand?: boolean
 }) {
   return (
     <>
       <header className="relative shrink-0 flex flex-wrap items-center gap-x-5 gap-y-3 px-4 sm:px-5 py-3 bg-ground border-b border-default select-none">
-        <div className="min-w-0 flex items-center gap-4"><Brand size="md" />{title && <span className="text-[18px] font-semibold text-body truncate">{title}</span>}{exitHref && <a href={exitHref} className="text-[12px] text-muted hover:text-body shrink-0">Status page</a>}</div>
+        <div className="min-w-0 flex items-center gap-4">{logoUrl ? <img src={logoUrl} alt="" className="h-8 w-auto max-w-[160px] object-contain" referrerPolicy="no-referrer" /> : showBrand && <Brand size="md" />}{title && <span className="text-[18px] font-semibold text-body truncate">{title}</span>}{exitHref && <a href={exitHref} className="text-[12px] text-muted hover:text-body shrink-0">Status page</a>}</div>
 
         <Totals counts={counts} />
         <Clusters clusters={clusters} size="lg" />

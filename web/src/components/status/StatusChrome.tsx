@@ -178,6 +178,24 @@ function setHeadLink(rel: string, href: string | null, type?: string): () => voi
   return () => el.remove()
 }
 
+// A white-label page with no icon of its own shows a blank tab icon rather
+// than the Opskest one.
+const BLANK_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'/%3E"
+
+/** The tab icon while a page is open: its favicon, else its logo, else (white-label only) a blank one. */
+export function usePageFavicon(settings: PageSettings | undefined, branding: PageBranding | undefined, enabled = true) {
+  const icon = settings?.faviconUrl || branding?.logoUrl || (settings?.showPoweredBy === false ? BLANK_ICON : '')
+  useEffect(() => {
+    if (!enabled || !icon) return
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (!link) return
+    const prev = { href: link.href, type: link.type }
+    link.removeAttribute('type')
+    link.href = icon
+    return () => { link.href = prev.href; if (prev.type) link.type = prev.type }
+  }, [icon, enabled])
+}
+
 export function StatusShell({
   children, branding, settings, isPublic = false, feedAvailable = false, canonical = false, slug,
 }: {
@@ -193,16 +211,7 @@ export function StatusShell({
   const theme = useResolvedTheme()
   const [location] = useLocation()
   const st = settings ?? DEFAULT_SETTINGS
-  // The page's logo doubles as its favicon while it is open.
-  useEffect(() => {
-    const logo = branding?.logoUrl
-    if (!logo) return
-    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
-    if (!link) return
-    const prev = link.href
-    link.href = logo
-    return () => { link.href = prev }
-  }, [branding?.logoUrl])
+  usePageFavicon(st, branding)
 
   // Font and corner style are attributes on <html> so dialogs that render in a
   // portal follow the page too; they are removed again when the page unmounts.
@@ -251,7 +260,7 @@ export function StatusHeader({
         <Link href={layout === 'board' ? `${home}/board` : home} aria-label={`${title} status home`} className="flex items-center gap-3 min-w-0 mr-auto rounded-[10px]">
           {branding?.logoUrl
             ? <img src={branding.logoUrl} alt={title} className="h-8 w-auto max-w-[160px] object-contain" referrerPolicy="no-referrer" />
-            : <KestrelMark className="w-8 h-8 shrink-0 text-accent" />}
+            : settings.showPoweredBy !== false && <KestrelMark className="w-8 h-8 shrink-0 text-accent" />}
           <span className="text-[16px] font-semibold tracking-tight truncate max-w-[180px] sm:max-w-[320px]">{title}</span>
         </Link>
         <div className="flex items-center gap-2">
@@ -277,7 +286,9 @@ export function StatusFooter({ branding, settings, zone }: { branding?: PageBran
         </p>
       )}
       <p>{zone ? <>Times shown in {zone.label}.</> : <>Times shown in your time zone ({localZone()}).</>} Daily bars follow the server timezone ({serverTimeZone()}).</p>
-      <p>Powered by Opskest</p>
+      {settings?.showPoweredBy !== false && (
+        <p>Powered by <a href="https://github.com/opskest/opskest" target="_blank" rel="noopener noreferrer" className="hover:text-body hover:underline">Opskest</a></p>
+      )}
     </footer>
   )
 }

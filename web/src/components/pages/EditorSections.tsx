@@ -118,8 +118,11 @@ export function AppearanceSection({ d, brand, set, err }: SectionProps) {
       </SettingsSection>
       <SettingsSection title="Brand identity" description="For customer-facing pages. Links must be https.">
         <div className="grid items-start gap-4 sm:grid-cols-2">
-          <Field label="Logo URL" error={err('logoUrl')} hint="Shown in the header and used as the favicon. SVG or PNG, ideally about 32px tall.">
+          <Field label="Logo URL" error={err('logoUrl')} hint="Shown in the header, and in the browser tab unless you set a favicon. SVG or PNG, ideally about 32px tall.">
             {fid => <Input id={fid} value={b.logoUrl} onChange={e => brand({ logoUrl: e.target.value })} placeholder="https://…/logo.svg" aria-invalid={!!err('logoUrl')} spellCheck={false} />}
+          </Field>
+          <Field label="Favicon URL" error={err('faviconUrl')} hint="Optional. The icon in the browser tab. Square SVG or PNG.">
+            {fid => <Input id={fid} value={st.faviconUrl} onChange={e => set({ faviconUrl: e.target.value })} placeholder="https://…/favicon.png" aria-invalid={!!err('faviconUrl')} spellCheck={false} maxLength={500} />}
           </Field>
           <Field label="Brand colour" error={err('brandColor')} hint="Accents and links only. Status colours stay standard.">
             {fid => (
@@ -138,6 +141,11 @@ export function AppearanceSection({ d, brand, set, err }: SectionProps) {
             {fid => <Input id={fid} value={b.supportUrl} onChange={e => brand({ supportUrl: e.target.value })} placeholder="https://example.org/contact" aria-invalid={!!err('supportUrl')} spellCheck={false} />}
           </Field>
         </div>
+      </SettingsSection>
+      <SettingsSection title="Opskest credit" description="Opskest is free and self-hosted.">
+        <Switch label="Show “Powered by Opskest” on this page" checked={st.showPoweredBy} onChange={e => set({ showPoweredBy: e.target.checked })}
+          hint="On by default. Leaving it on helps the Opskest project and its maintainer reach more people, and is much appreciated." />
+        {!st.showPoweredBy && <p className="pl-12 text-[12px] leading-relaxed text-muted">Off: the footer credit, the Opskest mark and the Opskest tab icon are gone, so this page carries only your own branding. Add a logo and favicon above.</p>}
       </SettingsSection>
       <SettingsSection title="Theme" description="Pick from safe options instead of custom CSS.">
         <div className="grid items-start gap-4 sm:grid-cols-2">

@@ -47,6 +47,9 @@ func TestPageSettingsValidation(t *testing.T) {
 		{"canonical query", map[string]any{"canonicalUrl": "https://example.com/?a=b"}, "canonicalUrl"},
 		{"canonical userinfo", map[string]any{"canonicalUrl": "https://user:pw@example.com"}, "canonicalUrl"},
 		{"canonical javascript", map[string]any{"canonicalUrl": "javascript:alert(1)"}, "canonicalUrl"},
+		{"favicon http", map[string]any{"faviconUrl": "http://cdn.example.com/f.png"}, "faviconUrl"},
+		{"favicon javascript", map[string]any{"faviconUrl": "javascript:alert(1)"}, "faviconUrl"},
+		{"favicon long", map[string]any{"faviconUrl": "https://cdn.example.com/" + strings.Repeat("a", 500)}, "faviconUrl"},
 	}
 	for _, c := range bad {
 		r := env.do(http.MethodPost, "/api/pages", settingsPage("bad-"+strings.ReplaceAll(c.name, " ", "-"), c.settings, nil), "admin")

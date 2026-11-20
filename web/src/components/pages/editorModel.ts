@@ -81,6 +81,7 @@ export function validate(d: Draft): FieldErrors {
     }
   }
   if (st.canonicalUrl.trim() && !/^https:\/\/[^/\s?#@]+\/?$/i.test(st.canonicalUrl.trim())) fe.canonicalUrl = 'use an https:// address with no path, e.g. https://status.example.com'
+  if (st.faviconUrl.trim() && !/^https:\/\/[^/\s]/i.test(st.faviconUrl.trim())) fe.faviconUrl = 'must be an https:// URL'
   return fe
 }
 

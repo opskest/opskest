@@ -137,6 +137,13 @@ func validatePageSettings(s *store.PageSettings) map[string]string {
 		errs["canonicalUrl"] = "must be an https:// address with no path, for example https://status.example.com"
 	}
 	s.CanonicalURL = origin
+	s.FaviconURL = strings.TrimSpace(s.FaviconURL)
+	if s.FaviconURL != "" {
+		u, err := url.Parse(s.FaviconURL)
+		if err != nil || u.Scheme != "https" || u.Host == "" || len(s.FaviconURL) > 500 {
+			errs["faviconUrl"] = "must be an https:// URL of at most 500 characters"
+		}
+	}
 	return errs
 }
 

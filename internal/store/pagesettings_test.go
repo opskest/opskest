@@ -55,6 +55,21 @@ func TestDecodePageSettingsIsTolerant(t *testing.T) {
 	}
 }
 
+// A document saved before showPoweredBy existed keeps "Powered by Opskest".
+func TestShowPoweredByDefaultsOn(t *testing.T) {
+	if !DefaultPageSettings().ShowPoweredBy {
+		t.Fatal("default is off")
+	}
+	for _, raw := range []string{"", "{}", `{"font":"mono"}`, `{"showMaintenance":false}`} {
+		if !decodePageSettings(raw).ShowPoweredBy {
+			t.Errorf("decode(%q): showPoweredBy is off", raw)
+		}
+	}
+	if decodePageSettings(`{"showPoweredBy":false}`).ShowPoweredBy {
+		t.Error("an explicit false was ignored")
+	}
+}
+
 // A document saved before showMaintenance existed reads as "on".
 func TestShowMaintenanceDefaultsOn(t *testing.T) {
 	if !DefaultPageSettings().ShowMaintenance {

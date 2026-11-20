@@ -28,12 +28,17 @@ export interface PageSettings {
   showMaintenance: boolean
   /** https origin the page is reached at behind a proxy, or ''. */
   canonicalUrl: string
+  /** "Powered by Opskest" and the Opskest mark. On by default; off makes the page white-label. */
+  showPoweredBy: boolean
+  /** https icon for the browser tab. '' uses the page logo. */
+  faviconUrl: string
 }
 
 export const DEFAULT_SETTINGS: PageSettings = {
   headerStyle: 'plain', font: 'system', corners: 'rounded', colorMode: '',
   descriptionMd: '', footerMd: '', banner: { text: '', severity: 'info' },
   showUptime: true, showCert: false, showLastCheck: false, refreshSeconds: 60, defaultExpanded: false, feedEnabled: true, showMaintenance: true, canonicalUrl: '',
+  showPoweredBy: true, faviconUrl: '',
 }
 
 export const HEADER_STYLES: { value: HeaderStyle; label: string; hint: string }[] = [
@@ -81,6 +86,8 @@ export function normSettings(raw: unknown): PageSettings {
     feedEnabled: bool(o.feedEnabled, d.feedEnabled),
     showMaintenance: bool(o.showMaintenance, d.showMaintenance),
     canonicalUrl: str(o.canonicalUrl),
+    showPoweredBy: bool(o.showPoweredBy, d.showPoweredBy),
+    faviconUrl: str(o.faviconUrl),
   }
 }
 
