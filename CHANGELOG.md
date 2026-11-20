@@ -3,6 +3,12 @@
 Each release is described here. The text under a version heading becomes the
 GitHub release notes and the notes shown in Settings, About & updates.
 
+## 1.0.5 (2026-11-20)
+
+### Security
+
+- Rebuilt with Go 1.27.4, which fixes a vulnerability in the Go standard library's `net/http` package (GO-2026-6859). There are no other changes since 1.0.4.
+
 ## 1.0.4 (2026-11-20)
 
 ### Status pages
