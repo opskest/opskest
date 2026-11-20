@@ -8,7 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/miekg/dns v1.1.73
 	github.com/prometheus-community/pro-bing v0.9.1
-	github.com/tidwall/gjson v1.20.2
+	github.com/tidwall/gjson v1.20.4
 	golang.org/x/sys v0.50.0
 	modernc.org/sqlite v1.62.0
 )
