@@ -4,7 +4,7 @@ go 1.27.4
 
 require (
 	github.com/coder/websocket v1.8.15
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/miekg/dns v1.1.73
 	github.com/prometheus-community/pro-bing v0.9.1
